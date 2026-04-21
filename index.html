@@ -424,40 +424,26 @@
 </footer>
 
 <script>
-const SYSTEM = `You are CellScan AI Assistant. This is a malaria blood cell detection project. Key facts:
-- Model: ResNet18 pretrained on ImageNet, fine-tuned for Parasitized vs Uninfected classification
-- Dataset: NIH Malaria Cell Images, 27,558 images, 70/15/15 split
-- Input: 224x224, ImageNet normalization
-- Optimizer: Adam, lr=0.001, CrossEntropyLoss, 10 epochs
-- Val accuracy: ~96.78%
-- Framework: PyTorch, deployed on Hugging Face Spaces with Gradio
-Answer concisely under 80 words.`;
-
-const history = [];
+const BACKEND_URL = 'https://malaria-detector-backend.onrender.com';
 
 async function sendMessage(text) {
   if (!text.trim()) return;
   addMsg(text, 'user');
   document.getElementById('chatInput').value = '';
   const loadingId = addLoading();
-  history.push({ role: 'user', content: text });
 
   try {
-    const res = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3', {
+    const res = await fetch(`${BACKEND_URL}/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer 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' },
-      body: JSON.stringify({
-        inputs: `<s>[INST] ${SYSTEM}\n\nUser: ${text} [/INST]`,
-        parameters: { max_new_tokens: 150, temperature: 0.7 }
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
     });
     const data = await res.json();
-    const reply = data[0]?.generated_text?.split('[/INST]').pop()?.trim() || 'Sorry, try again.';
     removeLoading(loadingId);
-    addMsg(reply, 'ai');
+    addMsg(data.reply || 'Sorry, try again.', 'ai');
   } catch (e) {
     removeLoading(loadingId);
-    addMsg('Something went wrong. Please try again.', 'ai');
+    addMsg('Could not reach the server. Please try again.', 'ai');
   }
 }
 
