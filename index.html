@@ -445,7 +445,7 @@ async function sendMessage(text) {
   try {
     const res = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer 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' },
       body: JSON.stringify({
         inputs: `<s>[INST] ${SYSTEM}\n\nUser: ${text} [/INST]`,
         parameters: { max_new_tokens: 150, temperature: 0.7 }
