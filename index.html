@@ -423,88 +423,60 @@
   <a href="https://huggingface.co/spaces/prophylaxis77/malaria-detector" target="_blank">View on Hugging Face ↗</a>
 </footer>
 
-<<script>
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add("visible");
-    }
-  });
-}, { threshold: 0.1 });
+<script>
+const SYSTEM = `You are CellScan AI Assistant. This is a malaria blood cell detection project. Key facts:
+- Model: ResNet18 pretrained on ImageNet, fine-tuned for Parasitized vs Uninfected classification
+- Dataset: NIH Malaria Cell Images, 27,558 images, 70/15/15 split
+- Input: 224x224, ImageNet normalization
+- Optimizer: Adam, lr=0.001, CrossEntropyLoss, 10 epochs
+- Val accuracy: ~96.78%
+- Framework: PyTorch, deployed on Hugging Face Spaces with Gradio
+Answer concisely under 80 words.`;
 
-document.querySelectorAll(".fade-in").forEach(el => observer.observe(el));
-
-const GEMINI_API_KEY = "AIzaSyCHkenypKPfJyWZgz5ZgtyGsAWhwhPH3dQ";
+const history = [];
 
 async function sendMessage(text) {
   if (!text.trim()) return;
-
-  addMsg(text, "user");
-  document.getElementById("chatInput").value = "";
-
+  addMsg(text, 'user');
+  document.getElementById('chatInput').value = '';
   const loadingId = addLoading();
+  history.push({ role: 'user', content: text });
 
   try {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: "You are a helpful assistant for a malaria detection AI project. User asked: " + text
-                }
-              ]
-            }
-          ]
-        })
-      }
-    );
-
-    const data = await response.json();
-
-    let reply = "Sorry, no response.";
-
-    if (
-      data.candidates &&
-      data.candidates[0] &&
-      data.candidates[0].content &&
-      data.candidates[0].content.parts &&
-      data.candidates[0].content.parts[0]
-    ) {
-      reply = data.candidates[0].content.parts[0].text;
-    }
-
+    const res = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        inputs: `<s>[INST] ${SYSTEM}\n\nUser: ${text} [/INST]`,
+        parameters: { max_new_tokens: 150, temperature: 0.7 }
+      })
+    });
+    const data = await res.json();
+    const reply = data[0]?.generated_text?.split('[/INST]').pop()?.trim() || 'Sorry, try again.';
     removeLoading(loadingId);
-    addMsg(reply, "ai");
-
-  } catch (err) {
+    addMsg(reply, 'ai');
+  } catch (e) {
     removeLoading(loadingId);
-    addMsg("Something went wrong.", "ai");
+    addMsg('Something went wrong. Please try again.', 'ai');
   }
 }
 
 function addMsg(text, type) {
-  const div = document.createElement("div");
-  div.className = "msg msg-" + type;
+  const div = document.createElement('div');
+  div.className = `msg msg-${type}`;
   div.textContent = text;
-  const box = document.getElementById("chatMessages");
+  const box = document.getElementById('chatMessages');
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 }
 
 function addLoading() {
-  const id = "loading-" + Date.now();
-  const div = document.createElement("div");
-  div.className = "msg msg-ai";
+  const id = 'loading-' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'msg msg-ai msg-loading';
   div.id = id;
-  div.textContent = "Typing...";
-  document.getElementById("chatMessages").appendChild(div);
+  div.innerHTML = '<span class="typing-dots"><span></span><span></span><span></span></span>';
+  document.getElementById('chatMessages').appendChild(div);
   return id;
 }
 
@@ -513,17 +485,13 @@ function removeLoading(id) {
   if (el) el.remove();
 }
 
-function askQuestion(q) {
-  sendMessage(q);
-}
+function askQuestion(q) { sendMessage(q); }
 
-document.getElementById("sendBtn").addEventListener("click", () => {
-  sendMessage(document.getElementById("chatInput").value);
-});
+document.getElementById('sendBtn').addEventListener('click', () => sendMessage(document.getElementById('chatInput').value));
+document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(e.target.value); });
 
-document.getElementById("chatInput").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") sendMessage(e.target.value);
-});
+const observer = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }), { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 </script>
 </body>
 </html>
