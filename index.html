@@ -452,25 +452,76 @@ Answer questions concisely and accurately. If asked something outside this scope
 
   const history = [];
 
-  async function sendMessage(text) {
-    if (!text.trim()) return;
-    addMsg(text, 'user');
-    document.getElementById('chatInput').value = '';
+<script>
+const GEMINI_API_KEY = "PASTE_YOUR_KEY_HERE";
 
-    const loadingId = addLoading();
-    history.push({ role: 'user', content: text });
+const SYSTEM_PROMPT = `
+You are CellScan AI Assistant for a malaria blood-cell detection project.
+Project facts:
+- Model: ResNet18 fine-tuned for binary classification
+- Classes: Parasitized / Uninfected
+- Dataset: NIH Malaria Cell Images Dataset (27,558 images)
+- Validation accuracy: ~96.78%
+- Framework: PyTorch
+- Deployment: Hugging Face + GitHub Pages
 
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          messages: history
-        })
-      });
+Answer clearly, concise, helpful. You can answer both:
+1) Questions about malaria, symptoms, prevention, diagnosis disclaimers
+2) Questions about the ML model, CNNs, ResNet18, dataset, training, limitations
+Keep most answers under 120 words.
+Always remind users this is not a medical diagnosis when relevant.
+`;
+
+async function sendMessage(text) {
+  if (!text.trim()) return;
+
+  addMsg(text, 'user');
+  document.getElementById('chatInput').value = '';
+
+  const loadingId = addLoading();
+
+  try {
+    const url =
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AIzaSyAbOso9K_y80z0jFdKptdQXD3ZiK1S6a_g}`;
+
+    const body = {
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: SYSTEM_PROMPT + "\n\nUser question: " + text }]
+        }
+      ]
+    };
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+
+    let reply = "Sorry, I couldn't respond right now.";
+
+    if (
+      data.candidates &&
+      data.candidates[0] &&
+      data.candidates[0].content &&
+      data.candidates[0].content.parts &&
+      data.candidates[0].content.parts[0]
+    ) {
+      reply = data.candidates[0].content.parts[0].text;
+    }
+
+    removeLoading(loadingId);
+    addMsg(reply, 'ai');
+
+  } catch (err) {
+    removeLoading(loadingId);
+    addMsg("Something went wrong. Please try again.", 'ai');
+  }
+}
+</script>
       const data = await res.json();
       const reply = data.content[0].text;
       history.push({ role: 'assistant', content: reply });
