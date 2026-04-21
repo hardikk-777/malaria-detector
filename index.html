@@ -424,52 +424,22 @@
 </footer>
 
 <script>
-  // Fade in on scroll
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-  }, { threshold: 0.1 });
-  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) e.target.classList.add('visible');
+  });
+}, { threshold: 0.1 });
 
-  // Chat
-  const SYSTEM_PROMPT = `You are CellScan AI Assistant, an expert on a malaria blood cell detection project. Here are the key facts:
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
-- Model: ResNet18 pretrained on ImageNet, fine-tuned for binary classification (Parasitized vs Uninfected)
-- Final layer: replaced with Linear(512, 2)
-- Dataset: NIH Malaria Cell Images Dataset, 27,558 images, equal balance of parasitized and uninfected cells
-- Split: 70% train, 15% val, 15% test (reproducible seed=42)
-- Input size: 224x224, normalized with ImageNet mean=[0.485, 0.456, 0.406] std=[0.229, 0.224, 0.225]
-- Augmentation: RandomHorizontalFlip, RandomRotation(10)
-- Optimizer: Adam, lr=0.001
-- Loss: CrossEntropyLoss
-- Epochs: 10 total (5+5), best checkpoint saved by val accuracy
-- Validation accuracy: ~96.78%
-- Framework: PyTorch, torchvision
-- Deployed on: Hugging Face Spaces with Gradio
-- The project also used Grad-CAM for visualizing which regions the model focuses on
-- Built by a CS student as part of an ML research exploration
-
-Answer questions concisely and accurately. If asked something outside this scope, answer generally as an ML expert. Keep responses under 100 words unless detail is needed.`;
-
-  const history = [];
-
-<script>
-const GEMINI_API_KEY = "PASTE_YOUR_KEY_HERE";
+const GEMINI_API_KEY = "PASTE_NEW_KEY_HERE";
 
 const SYSTEM_PROMPT = `
-You are CellScan AI Assistant for a malaria blood-cell detection project.
-Project facts:
-- Model: ResNet18 fine-tuned for binary classification
-- Classes: Parasitized / Uninfected
-- Dataset: NIH Malaria Cell Images Dataset (27,558 images)
-- Validation accuracy: ~96.78%
-- Framework: PyTorch
-- Deployment: Hugging Face + GitHub Pages
-
-Answer clearly, concise, helpful. You can answer both:
-1) Questions about malaria, symptoms, prevention, diagnosis disclaimers
-2) Questions about the ML model, CNNs, ResNet18, dataset, training, limitations
-Keep most answers under 120 words.
-Always remind users this is not a medical diagnosis when relevant.
+You are CellScan AI Assistant for a malaria detection project.
+You can answer:
+1. Malaria symptoms, prevention, awareness
+2. Questions about the ML model, CNN, ResNet18, dataset, accuracy
+Keep answers concise and useful.
 `;
 
 async function sendMessage(text) {
@@ -477,31 +447,29 @@ async function sendMessage(text) {
 
   addMsg(text, 'user');
   document.getElementById('chatInput').value = '';
-
   const loadingId = addLoading();
 
   try {
-    const url =
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AIzaSyAbOso9K_y80z0jFdKptdQXD3ZiK1S6a_g}`;
-
-    const body = {
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: SYSTEM_PROMPT + "\n\nUser question: " + text }]
-        }
-      ]
-    };
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
+    const res = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: SYSTEM_PROMPT + "\n\nUser Question: " + text }
+              ]
+            }
+          ]
+        })
+      }
+    );
 
     const data = await res.json();
 
-    let reply = "Sorry, I couldn't respond right now.";
+    let reply = "Sorry, I couldn't respond.";
 
     if (
       data.candidates &&
@@ -516,60 +484,47 @@ async function sendMessage(text) {
     removeLoading(loadingId);
     addMsg(reply, 'ai');
 
-  } catch (err) {
+  } catch (error) {
     removeLoading(loadingId);
-    addMsg("Something went wrong. Please try again.", 'ai');
+    addMsg("Something went wrong.", 'ai');
   }
 }
-</script>
-      const data = await res.json();
-      const reply = data.content[0].text;
-      history.push({ role: 'assistant', content: reply });
-      removeLoading(loadingId);
-      addMsg(reply, 'ai');
-    } catch (e) {
-      removeLoading(loadingId);
-      addMsg('Sorry, something went wrong. Please try again.', 'ai');
-    }
-  }
 
-  function addMsg(text, type) {
-    const div = document.createElement('div');
-    div.className = `msg msg-${type}`;
-    div.textContent = text;
-    const container = document.getElementById('chatMessages');
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-    return div;
-  }
+function addMsg(text, type) {
+  const div = document.createElement('div');
+  div.className = `msg msg-${type}`;
+  div.textContent = text;
+  const container = document.getElementById('chatMessages');
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
 
-  function addLoading() {
-    const id = 'loading-' + Date.now();
-    const div = document.createElement('div');
-    div.className = 'msg msg-ai msg-loading';
-    div.id = id;
-    div.innerHTML = '<span class="typing-dots"><span></span><span></span><span></span></span>';
-    document.getElementById('chatMessages').appendChild(div);
-    document.getElementById('chatMessages').scrollTop = 999999;
-    return id;
-  }
+function addLoading() {
+  const id = 'loading-' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'msg msg-ai msg-loading';
+  div.id = id;
+  div.innerHTML = 'Typing...';
+  document.getElementById('chatMessages').appendChild(div);
+  return id;
+}
 
-  function removeLoading(id) {
-    const el = document.getElementById(id);
-    if (el) el.remove();
-  }
+function removeLoading(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
 
-  function askQuestion(q) {
-    document.getElementById('chatInput').value = q;
-    sendMessage(q);
-  }
+function askQuestion(q) {
+  sendMessage(q);
+}
 
-  document.getElementById('sendBtn').addEventListener('click', () => {
-    sendMessage(document.getElementById('chatInput').value);
-  });
-  document.getElementById('chatInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') sendMessage(e.target.value);
-  });
+document.getElementById('sendBtn').addEventListener('click', () => {
+  sendMessage(document.getElementById('chatInput').value);
+});
+
+document.getElementById('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendMessage(e.target.value);
+});
 </script>
 </body>
 </html>
