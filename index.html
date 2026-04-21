@@ -432,7 +432,7 @@ const observer = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
-const GEMINI_API_KEY = "PASTE_NEW_KEY_HERE";
+const GEMINI_API_KEY = "AIzaSyAbOso9K_y80z0jFdKptdQXD3ZiK1S6a_g";
 
 const SYSTEM_PROMPT = `
 You are CellScan AI Assistant for a malaria detection project.
@@ -451,7 +451,7 @@ async function sendMessage(text) {
 
   try {
     const res = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY,
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + AIzaSyAbOso9K_y80z0jFdKptdQXD3ZiK1S6a_g,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
